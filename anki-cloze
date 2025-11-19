@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+# This script takes any number of arguments from the command line,
+# splits multi-word arguments into single words, and joins them into a single sentence.
+
+# Collect all arguments from the command line
+arguments = ARGV
+
+# Split multi-word arguments into single words and flatten the array
+words = arguments.flat_map { |arg| arg.split(/\s+/) }
+
+# Join the words into a single sentence with one space between each word
+sentence = words.join(" ")
+
+# Output the resulting sentence
+puts sentence
