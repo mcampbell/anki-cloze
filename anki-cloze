@@ -1,16 +1,30 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
-# This script takes any number of arguments from the command line,
-# splits multi-word arguments into single words, and joins them into a single sentence.
+require 'slop'
 
-# Collect all arguments from the command line
-arguments = ARGV
+begin
+  opts = Slop.parse(ARGV) do |o|
+    o.integer '--chunks', 'number of words per cloze', default: 1
+    o.banner = 'Usage: anki-cloze [--chunks N] text...'
+  end
+rescue Slop::Error => e
+  warn e.message
+  exit 2
+end
 
-# Split multi-word arguments into single words and flatten the array
-words = arguments.flat_map { |arg| arg.split(/\s+/) }
+chunks = opts[:chunks].to_i
+chunks = 1 if chunks < 1
 
-# Join the words into a single sentence with one space between each word
-sentence = words.join(" ")
+# Remaining non-option arguments
+words = opts.arguments.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
 
-# Output the resulting sentence
-puts sentence
+if words.empty?
+  puts ''
+  exit 0
+end
+
+groups = words.each_slice(chunks).to_a
+clozes = groups.map.with_index(1) { |g, i| "{{c#{i}::#{g.join(' ')}}}" }
+puts clozes.join(' ')
+
