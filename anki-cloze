@@ -2,29 +2,52 @@
 # frozen_string_literal: true
 
 require 'slop'
+require 'set'
 
-begin
-  opts = Slop.parse(ARGV) do |o|
-    o.integer '--chunks', 'number of words per cloze', default: 1
-    o.banner = 'Usage: anki-cloze [--chunks N] text...'
+# Make cloze available for unit tests by defining it before running CLI code.
+def cloze(clause, n)
+  if n.nil? || clause.nil? || n < 1
+    ''
+  else
+    "{{c#{n}::#{clause}}}"
   end
-rescue Slop::Error => e
-  warn e.message
-  exit 2
 end
 
-chunks = opts[:chunks].to_i
-chunks = 1 if chunks < 1
+if __FILE__ == $0
+  begin
+    opts = Slop.parse(ARGV) do |o|
+      o.integer '--chunks', 'number of words per cloze', default: 1
+      o.banner = 'Usage: anki-cloze [--chunks N] text...'
+    end
+  rescue Slop::Error => e
+    warn e.message
+    exit 2
+  end
 
-# Remaining non-option arguments
-words = opts.arguments.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
+  chunks = opts[:chunks].to_i
+  chunks = 1 if chunks < 1
 
-if words.empty?
-  puts ''
-  exit 0
+  # Remaining non-option arguments
+  words = opts.arguments.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
+
+  if words.empty?
+    puts ''
+    exit 0
+  end
+
+  # For a chunk size of N we need N passes to generate all the outputs.
+
+  # Logic: Start at the beginning + pass'th word, and collect as many words
+  # as the chunk size into a group.  Join the group by a space and cloze it.
+
+  (1..chunks).each do |pass|
+    acc = []
+    offset = (pass - 1)
+    index_delta = offset == 0 ? 0 : 1
+    acc << cloze(words[0...offset].flatten.join(' '), 1) if offset > 0 # first words we don't use on this pass
+
+    acc << words[offset..].each_slice(chunks).map.each_with_index { |slice, idx| cloze(slice.join(' '), idx + 1 + index_delta) }.flatten
+    puts acc.join(' ')
+  end
+
 end
-
-groups = words.each_slice(chunks).to_a
-clozes = groups.map.with_index(1) { |g, i| "{{c#{i}::#{g.join(' ')}}}" }
-puts clozes.join(' ')
-
