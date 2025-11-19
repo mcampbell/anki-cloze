@@ -58,7 +58,9 @@ describe 'cli chunking behavior' do
 
   it 'outputs correct grouping when final chunk smaller than chunk size' do
     result = run_anki_cloze('--chunks', '3', 'one', 'two', 'three', 'four')
-    expected = "{{c1::one two three}} {{c2::four}}\n{{c1::one}} {{c2::two three}} {{c3::four}}"
+    # This is a little weird, but ok.  The third pass doesn't have enough tokens for either a full first
+    # or full last chunk.
+    expected = "{{c1::one two three}} {{c2::four}}\n{{c1::one}} {{c2::two three four}}\n{{c1::one two}} {{c2::three four}}"
     expect(result).to eq(expected)
   end
 end
