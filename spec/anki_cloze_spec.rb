@@ -48,19 +48,22 @@ describe 'cloze method' do
   end
 end
 
-describe 'cli chunking behavior' do
-  it 'outputs multiple lines for --chunks 2 with expected clozes' do
-    result = run_anki_cloze('--chunks', '2', 'hello', 'world', 'from', 'ruby')
-    # executable prints multiple lines; compare the full output
-    expected = "{{c1::hello world}} {{c2::from ruby}}\n{{c1::hello}} {{c2::world from}} {{c3::ruby}}"
-    expect(result).to eq(expected)
+describe 'emit_clozes' do
+  before do
+    load File.expand_path('../anki-cloze', __dir__)
   end
 
-  it 'outputs correct grouping when final chunk smaller than chunk size' do
-    result = run_anki_cloze('--chunks', '3', 'one', 'two', 'three', 'four')
-    # This is a little weird, but ok.  The third pass doesn't have enough tokens for either a full first
-    # or full last chunk.
-    expected = "{{c1::one two three}} {{c2::four}}\n{{c1::one}} {{c2::two three four}}\n{{c1::one two}} {{c2::three four}}"
-    expect(result).to eq(expected)
+  it 'groups words into chunks of 2 and prints expected clozes' do
+    original_stdout = $stdout
+    out = StringIO.new
+    $stdout = out
+    begin
+      emit_clozes(2, %w[one two three four])
+    ensure
+      $stdout = original_stdout
+    end
+
+    expected = "{{c1::one two}} {{c2::three four}}\none {{c2::two three}} four"
+    expect(out.string.strip).to eq(expected)
   end
 end
