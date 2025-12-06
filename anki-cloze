@@ -68,8 +68,8 @@ if __FILE__ == $0
   # as the chunk size into a group.  Join the group by a space and cloze it.
 
   # Call emit_clozes for chunk sizes from 1 up to n, where n is half the number
-  # of words (integer division). Ensure we call at least once with chunk size 1.
-  n = (words.size / 2).to_i
+  # of words (rounded up). For example: 10 -> 5, 9 -> 5. Ensure at least 1.
+  n = (words.size / 2.0).ceil
   n = 1 if n < 1
   (1..n).each do |chunk_size|
     emit_clozes(chunk_size, words)

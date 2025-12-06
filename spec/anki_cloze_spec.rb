@@ -24,6 +24,12 @@ describe 'anki-cloze' do
     expected = "{{c1::hello}} {{c2::world}} {{c3::from}} {{c4::ruby}}\n{{c1::hello world}} {{c2::from ruby}}\nhello {{c2::world from}} ruby"
     expect(result).to eq(expected)
   end
+
+  it 'emits the expected number of lines for 5 words' do
+    result = run_anki_cloze('one', 'two', 'three', 'four', 'five')
+    # For 5 words, n = ceil(5/2) = 3, total lines printed = 1 + 2 + 3 = 6
+    expect(result.split("\n").length).to eq(6)
+  end
 end
 
 describe 'cloze method' do
