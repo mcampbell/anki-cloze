@@ -21,7 +21,8 @@ describe 'anki-cloze' do
 
   it 'handles arguments with multiple spaces' do
     result = run_anki_cloze('hello   world', '  from   ruby')
-    expect(result).to eq('{{c1::hello}} {{c2::world}} {{c3::from}} {{c4::ruby}}')
+    expected = "{{c1::hello}} {{c2::world}} {{c3::from}} {{c4::ruby}}\n{{c1::hello world}} {{c2::from ruby}}\nhello {{c2::world from}} ruby"
+    expect(result).to eq(expected)
   end
 end
 

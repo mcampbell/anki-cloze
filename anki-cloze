@@ -54,9 +54,6 @@ if __FILE__ == $0
     exit 2
   end
 
-  chunks = opts[:chunks].to_i
-  chunks = 1 if chunks < 1
-
   # Remaining non-option arguments
   words = opts.arguments.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
 
@@ -70,6 +67,12 @@ if __FILE__ == $0
   # Logic: Start at the beginning + pass'th word, and collect as many words
   # as the chunk size into a group.  Join the group by a space and cloze it.
 
-  emit_clozes(chunks, words)
+  # Call emit_clozes for chunk sizes from 1 up to n, where n is half the number
+  # of words (integer division). Ensure we call at least once with chunk size 1.
+  n = (words.size / 2).to_i
+  n = 1 if n < 1
+  (1..n).each do |chunk_size|
+    emit_clozes(chunk_size, words)
+  end
 
 end
