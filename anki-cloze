@@ -13,10 +13,40 @@ def cloze(clause, n)
   end
 end
 
+def emit_clozes(chunks, words)
+  (1..chunks).each do |pass|
+    acc = []
+    offset = (pass - 1)
+    index_delta = offset == 0 ? 0 : 1
+
+    # first words we don't use on this pass
+    if offset > 0
+      prefix = words[0...offset].flatten.join(' ')
+      # If the prefix is smaller than the requested chunk size, leave it plain
+      if prefix.strip.split(/\s+/).length < chunks
+        acc << prefix
+      else
+        acc << cloze(prefix, 1)
+      end
+    end
+
+    remainder = words[offset..] || []
+    slices = remainder.each_slice(chunks).map.each_with_index do |slice, idx|
+      if slice.length < chunks
+        slice.join(' ')
+      else
+        cloze(slice.join(' '), idx + 1 + index_delta)
+      end
+    end
+
+    acc << slices
+    puts acc.join(' ')
+  end
+end
+
 if __FILE__ == $0
   begin
     opts = Slop.parse(ARGV) do |o|
-      o.integer '--chunks', 'number of words per cloze', default: 1
       o.banner = 'Usage: anki-cloze [--chunks N] text...'
     end
   rescue Slop::Error => e
@@ -40,14 +70,6 @@ if __FILE__ == $0
   # Logic: Start at the beginning + pass'th word, and collect as many words
   # as the chunk size into a group.  Join the group by a space and cloze it.
 
-  (1..chunks).each do |pass|
-    acc = []
-    offset = (pass - 1)
-    index_delta = offset == 0 ? 0 : 1
-    acc << cloze(words[0...offset].flatten.join(' '), 1) if offset > 0 # first words we don't use on this pass
-
-    acc << words[offset..].each_slice(chunks).map.each_with_index { |slice, idx| cloze(slice.join(' '), idx + 1 + index_delta) }.flatten
-    puts acc.join(' ')
-  end
+  emit_clozes(chunks, words)
 
 end
