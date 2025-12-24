@@ -35,7 +35,7 @@ def emit_clozes(chunks, words)
       if slice.length < chunks
         slice.join(' ')
       else
-        cloze(slice.join(' '), idx + 1 + index_delta)
+        cloze(slice.join(' '), idx + 1)
       end
     end
 
