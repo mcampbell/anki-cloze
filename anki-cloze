@@ -48,6 +48,7 @@ if __FILE__ == $0
   begin
     opts = Slop.parse(ARGV) do |o|
       o.banner = 'Usage: anki-cloze [--chunks N] text...'
+      o.integer '-m', '--minimum-chunk-size', 'The minimum chunk size to emit (default: 1)', default: 1
     end
   rescue Slop::Error => e
     warn e.message
