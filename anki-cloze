@@ -13,11 +13,11 @@ def cloze(clause, n)
   end
 end
 
-def emit_clozes(chunks, words)
+def emit_clozes(chunks, words, min_chunk_size)
+  return if chunks < min_chunk_size
   (1..chunks).each do |pass|
     acc = []
     offset = (pass - 1)
-    index_delta = offset == 0 ? 0 : 1
 
     # first words we don't use on this pass
     if offset > 0
@@ -49,6 +49,10 @@ if __FILE__ == $0
     opts = Slop.parse(ARGV) do |o|
       o.banner = 'Usage: anki-cloze [--chunks N] text...'
       o.integer '-m', '--minimum-chunk-size', 'The minimum chunk size to emit (default: 1)', default: 1
+      o.on '-h', '--help', 'print help' do
+        puts o
+        exit
+      end
     end
   rescue Slop::Error => e
     warn e.message
@@ -73,7 +77,7 @@ if __FILE__ == $0
   n = (words.size / 2.0).ceil
   n = 1 if n < 1
   (1..n).each do |chunk_size|
-    emit_clozes(chunk_size, words)
+    emit_clozes(chunk_size, words, opts[:minimum_chunk_size])
   end
 
 end
