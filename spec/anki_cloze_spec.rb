@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'open3'
+load File.expand_path('../anki-cloze', __dir__)
 
 def run_anki_cloze(*args)
   command = [File.expand_path('../anki-cloze', __dir__), *args]
@@ -32,45 +33,36 @@ describe 'anki-cloze' do
   end
 end
 
-describe 'cloze method' do
-  before do
-    load File.expand_path('../anki-cloze', __dir__)
-  end
+describe AnkiClozeGenerator do
+  let(:generator) { AnkiClozeGenerator.new(%w[one two three four]) }
 
-  it 'returns empty string when word is nil' do
-    expect(cloze(nil, 1)).to eq('')
-  end
-
-  it 'returns empty string when n is nil' do
-    expect(cloze('hello', nil)).to eq('')
-  end
-
-  it 'returns empty string when n is negative or zero' do
-    expect(cloze('hello', -1)).to eq('')
-    expect(cloze('hello', 0)).to eq('')
-  end
-
-  it 'returns a cloze when inputs are valid' do
-    expect(cloze('hello', 2)).to eq('{{c2::hello}}')
-  end
-end
-
-describe 'emit_clozes' do
-  before do
-    load File.expand_path('../anki-cloze', __dir__)
-  end
-
-  it 'groups words into chunks of 2 and prints expected clozes' do
-    original_stdout = $stdout
-    out = StringIO.new
-    $stdout = out
-    begin
-      emit_clozes(2, %w[one two three four])
-    ensure
-      $stdout = original_stdout
+  describe '#cloze' do
+    it 'returns empty string when word is nil' do
+      expect(generator.send(:cloze, nil, 1)).to eq('')
     end
 
-    expected = "{{c1::one two}} {{c2::three four}}\none {{c1::two three}} four"
-    expect(out.string.strip).to eq(expected)
+    it 'returns empty string when n is nil' do
+      expect(generator.send(:cloze, 'hello', nil)).to eq('')
+    end
+
+    it 'returns empty string when n is negative or zero' do
+      expect(generator.send(:cloze, 'hello', -1)).to eq('')
+      expect(generator.send(:cloze, 'hello', 0)).to eq('')
+    end
+
+    it 'returns a cloze when inputs are valid' do
+      expect(generator.send(:cloze, 'hello', 2)).to eq('{{c2::hello}}')
+    end
+  end
+
+  describe '#emit_clozes_for_chunk_size' do
+    it 'groups words into chunks of 2 and prints expected clozes' do
+      original_stdout = $stdout
+      out = StringIO.new
+      $stdout = out
+      lines = generator.send(:emit_clozes_for_chunk_size, 2)
+      expected = "{{c1::one two}} {{c2::three four}}\none {{c1::two three}} four"
+      expect(lines.join("\n")).to eq(expected)
+    end
   end
 end

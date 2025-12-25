@@ -4,43 +4,59 @@
 require 'slop'
 require 'set'
 
-# Make cloze available for unit tests by defining it before running CLI code.
-def cloze(clause, n)
-  if n.nil? || clause.nil? || n < 1
-    ''
-  else
+# Represents a generator for Anki cloze deletions.
+class AnkiClozeGenerator
+  def initialize(words, min_chunk_size: 1)
+    @words = words.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
+    @min_chunk_size = min_chunk_size
+  end
+
+  def generate
+    return if @words.empty?
+
+    max_chunk_size = (@words.size / 2.0).ceil
+    max_chunk_size = 1 if max_chunk_size < 1
+
+    (1..max_chunk_size).each do |chunk_size|
+      lines = emit_clozes_for_chunk_size(chunk_size)
+      lines.each { |line| puts line } unless lines.nil?
+    end
+  end
+
+  private
+
+  def cloze(clause, n)
+    return '' if n.nil? || clause.nil? || !n.positive?
     "{{c#{n}::#{clause}}}"
   end
-end
 
-def emit_clozes(chunks, words, min_chunk_size)
-  return if chunks < min_chunk_size
-  (1..chunks).each do |pass|
-    acc = []
-    offset = (pass - 1)
+  def emit_clozes_for_chunk_size(chunks)
+    return if chunks < @min_chunk_size
 
-    # first words we don't use on this pass
-    if offset > 0
-      prefix = words[0...offset].flatten.join(' ')
-      # If the prefix is smaller than the requested chunk size, leave it plain
-      if prefix.strip.split(/\s+/).length < chunks
-        acc << prefix
-      else
-        acc << cloze(prefix, 1)
+    (1..chunks).map do |pass|
+      acc = []
+      offset = pass - 1
+
+      if offset > 0
+        prefix = @words[0...offset].flatten.join(' ')
+        acc << if prefix.strip.split(/\s+/).length < chunks
+                 prefix
+               else
+                 cloze(prefix, 1)
+               end
       end
-    end
 
-    remainder = words[offset..] || []
-    slices = remainder.each_slice(chunks).map.each_with_index do |slice, idx|
-      if slice.length < chunks
-        slice.join(' ')
-      else
-        cloze(slice.join(' '), idx + 1)
+      remainder = @words[offset..] || []
+      slices = remainder.each_slice(chunks).map.with_index do |slice, idx|
+        if slice.length < chunks
+          slice.join(' ')
+        else
+          cloze(slice.join(' '), idx + 1)
+        end
       end
-    end
 
-    acc << slices
-    puts acc.join(' ')
+      acc.concat(slices).join(' ')
+    end
   end
 end
 
@@ -54,30 +70,11 @@ if __FILE__ == $0
         exit
       end
     end
+
+    generator = AnkiClozeGenerator.new(opts.arguments, min_chunk_size: opts[:minimum_chunk_size])
+    generator.generate
   rescue Slop::Error => e
     warn e.message
     exit 2
   end
-
-  # Remaining non-option arguments
-  words = opts.arguments.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
-
-  if words.empty?
-    puts ''
-    exit 0
-  end
-
-  # For a chunk size of N we need N passes to generate all the outputs.
-
-  # Logic: Start at the beginning + pass'th word, and collect as many words
-  # as the chunk size into a group.  Join the group by a space and cloze it.
-
-  # Call emit_clozes for chunk sizes from 1 up to n, where n is half the number
-  # of words (rounded up). For example: 10 -> 5, 9 -> 5. Ensure at least 1.
-  n = (words.size / 2.0).ceil
-  n = 1 if n < 1
-  (1..n).each do |chunk_size|
-    emit_clozes(chunk_size, words, opts[:minimum_chunk_size])
-  end
-
 end
