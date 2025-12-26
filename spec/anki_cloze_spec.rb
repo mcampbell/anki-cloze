@@ -31,6 +31,18 @@ describe 'anki-cloze' do
     # For 5 words, n = ceil(5/2) = 3, total lines printed = 1 + 2 + 3 = 6
     expect(result.split("\n").length).to eq(6)
   end
+
+  it 'handles split mode correctly' do
+    result = run_anki_cloze('-s', 'test')
+    # "test" -> ['t', 'e', 's', 't']
+    # 4 chars. max_chunk = 4/2 = 2.
+    # Chunk 1: {{c1::t}}{{c2::e}}{{c3::s}}{{c4::t}}
+    # Chunk 2 (pass 1): {{c1::te}}{{c2::st}}
+    # Chunk 2 (pass 2): t{{c1::es}}t
+    
+    expected = "{{c1::t}}{{c2::e}}{{c3::s}}{{c4::t}}\n{{c1::te}}{{c2::st}}\nt{{c1::es}}t"
+    expect(result).to eq(expected)
+  end
 end
 
 describe AnkiClozeGenerator do

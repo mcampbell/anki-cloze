@@ -6,8 +6,14 @@ require 'set'
 
 # Represents a generator for Anki cloze deletions.
 class AnkiClozeGenerator
-  def initialize(words, min_chunk_size: 1)
-    @words = words.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
+  def initialize(words, min_chunk_size: 1, split_mode: false)
+    if split_mode
+      @words = words.join.chars
+      @separator = ''
+    else
+      @words = words.flat_map { |a| a.to_s.strip.split(/\s+/) }.reject(&:empty?)
+      @separator = ' '
+    end
     @min_chunk_size = min_chunk_size
   end
 
@@ -38,8 +44,9 @@ class AnkiClozeGenerator
       offset = pass - 1
 
       if offset > 0
-        prefix = @words[0...offset].flatten.join(' ')
-        acc << if prefix.strip.split(/\s+/).length < chunks
+        prefix_items = @words[0...offset]
+        prefix = prefix_items.flatten.join(@separator)
+        acc << if prefix_items.size < chunks
                  prefix
                else
                  cloze(prefix, 1)
@@ -49,13 +56,13 @@ class AnkiClozeGenerator
       remainder = @words[offset..] || []
       slices = remainder.each_slice(chunks).map.with_index do |slice, idx|
         if slice.length < chunks
-          slice.join(' ')
+          slice.join(@separator)
         else
-          cloze(slice.join(' '), idx + 1)
+          cloze(slice.join(@separator), idx + 1)
         end
       end
 
-      acc.concat(slices).join(' ')
+      acc.concat(slices).join(@separator)
     end
   end
 end
@@ -65,13 +72,14 @@ if __FILE__ == $0
     opts = Slop.parse(ARGV) do |o|
       o.banner = 'Usage: anki-cloze [--chunks N] text...'
       o.integer '-m', '--minimum-chunk-size', 'The minimum chunk size to emit (default: 1)', default: 1
+      o.bool '-s', '--split', 'Split mode: split the 1 input word by character', default: false
       o.on '-h', '--help', 'print help' do
         puts o
         exit
       end
     end
 
-    generator = AnkiClozeGenerator.new(opts.arguments, min_chunk_size: opts[:minimum_chunk_size])
+    generator = AnkiClozeGenerator.new(opts.arguments, min_chunk_size: opts[:minimum_chunk_size], split_mode: opts[:split])
     generator.generate
   rescue Slop::Error => e
     warn e.message
