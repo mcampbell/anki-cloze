@@ -79,6 +79,12 @@ if __FILE__ == $0
       end
     end
 
+    if opts[:split] && opts.arguments.size > 1
+      warn 'Error: Split mode (-s) accepts only one argument (the word to split).'
+      puts opts
+      exit 1
+    end
+
     generator = AnkiClozeGenerator.new(opts.arguments, min_chunk_size: opts[:minimum_chunk_size], split_mode: opts[:split])
     generator.generate
   rescue Slop::Error => e

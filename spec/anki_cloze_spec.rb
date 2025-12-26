@@ -43,6 +43,13 @@ describe 'anki-cloze' do
     expected = "{{c1::t}}{{c2::e}}{{c3::s}}{{c4::t}}\n{{c1::te}}{{c2::st}}\nt{{c1::es}}t"
     expect(result).to eq(expected)
   end
+
+  it 'errors when multiple arguments are provided in split mode' do
+    command = [File.expand_path('../anki-cloze', __dir__), '-s', 'test', 'extra']
+    _stdout, stderr, status = Open3.capture3(*command)
+    expect(status.exitstatus).to eq(1)
+    expect(stderr).to include('Error: Split mode (-s) accepts only one argument')
+  end
 end
 
 describe AnkiClozeGenerator do
